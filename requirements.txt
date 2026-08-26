@@ -1,0 +1,45 @@
+# Core Dependencies
+python-dotenv
+pydantic
+pydantic-settings
+
+# AI/LLM
+langchain
+langchain-groq
+langgraph
+langchain-community
+faiss-cpu
+
+# Speech
+groq
+edge-tts
+pyaudio
+speechrecognition
+
+# Automation
+pyautogui
+keyboard
+mouse
+playwright
+
+# System
+psutil
+pillow
+opencv-python
+
+# Web & API
+fastapi
+uvicorn
+httpx
+
+# UI
+streamlit
+streamlit-mic-recorder
+
+# Database
+sqlite-utils
+aiosqlite
+
+# Utilities
+rich
+loguru
