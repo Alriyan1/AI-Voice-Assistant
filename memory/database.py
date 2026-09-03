@@ -234,7 +234,7 @@ class MemoryDatabase:
             logger.error(f"Save conversation failed: {e}")
             return False
 
-    def get_recent_conversation(self,limit: int=10) -> List[Dict]:
+    def get_recent_conversations(self,limit: int=10) -> List[Dict]:
 
         try:
             with self.get_connection() as conn:
