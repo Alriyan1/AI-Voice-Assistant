@@ -67,6 +67,12 @@ class Settings(BaseSettings):
         path.parent.mkdir(parents=True,exist_ok=True)
         return path
 
+    @property
+    def memory_db_path(self) -> Path:
+        path = Path(self.memory_database)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path
+    
 settings = Settings()
 
 def get_settings() -> Settings:
