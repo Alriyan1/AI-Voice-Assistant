@@ -13,11 +13,23 @@ class Settings(BaseSettings):
         extra='ignore'
     )
 
-    groq_api_key: str = Field(..., description='Groq API key for LLM and STT')
+    groq_api_key: Optional[str] = Field(None, description='Optional Groq API key for STT and fallback models')
     nvidia_api_key: Optional[str] = Field(None,description='NVIDIA NIM API key')
+    nvidia_base_url: str = Field(
+        'https://integrate.api.nvidia.com/v1',
+        description='NVIDIA NIM OpenAI-compatible API URL'
+    )
 
-    llm_model: str = Field('llama-3.1-70b-versatile',description='LLM model to use')
-    stt_model: str = Field("en-US-EmmaMultilingualNeural", description="TTS voice")
+    llm_model: str = Field(
+        "meta/llama-3.2-11b-vision-instruct",
+        description="Primary NVIDIA text model"
+    )
+    vision_model: str = Field(
+        "meta/llama-3.2-11b-vision-instruct",
+        description="Primary NVIDIA vision model"
+    )
+    stt_model: str = Field("whisper-large-v3", description="Speech-to-text model")
+    tts_voice: str = Field("en-US-EmmaMultilingualNeural", description="TTS voice")
 
     chrome_path: str = Field(
         r"C:\Program Files\Google\Chrome\Application\chrome.exe",

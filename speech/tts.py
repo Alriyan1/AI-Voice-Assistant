@@ -45,10 +45,15 @@ class TextToSpeech:
 
 
     def play_audio(self,audio_data:bytes)->bool:
+        temp_file = None
         try:
-            temp_file = self.temp_dir/'temp_audio.mp3'
-            with open(temp_file,'wb') as f:
-                f.write(audio_data)
+            with tempfile.NamedTemporaryFile(
+                dir=self.temp_dir,
+                suffix='.mp3',
+                delete=False
+            ) as file_handle:
+                temp_file = Path(file_handle.name)
+                file_handle.write(audio_data)
 
             pygame.mixer.music.load(str(temp_file))
             pygame.mixer.music.play()
@@ -61,6 +66,20 @@ class TextToSpeech:
         except Exception as e:
             logger.error(f"Audio playback failed: {e}")
             return False
+
+        finally:
+            try:
+                if pygame.mixer.music.get_busy():
+                    pygame.mixer.music.stop()
+                pygame.mixer.music.unload()
+            except pygame.error:
+                pass
+
+            if temp_file:
+                try:
+                    temp_file.unlink(missing_ok=True)
+                except OSError as e:
+                    logger.warning(f"Could not remove temporary audio file: {e}")
 
 
     async def speak(self,text:str)->bool:

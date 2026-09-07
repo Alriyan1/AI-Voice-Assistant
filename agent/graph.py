@@ -1,10 +1,11 @@
 from typing import TypedDict,List,Dict,Any,Optional
+from pathlib import Path
 from langgraph.graph import StateGraph,END
 from loguru import logger
 from agent.planner import Planner,ActionPlan
 from agent.memory import AgentMemory
 from agent.prompts import create_agent_prompt
-import asyncio
+import time
 
 class AgentState(TypedDict):
 
@@ -65,7 +66,7 @@ class VoiceAgent:
 
         self.memory.add_to_short_term({
             'command':state['user_command'],
-            'timestamp': asyncio.get_event_loop().time()
+            'timestamp': time.monotonic()
         })
 
         return state
@@ -81,6 +82,47 @@ class VoiceAgent:
 
         if plan:
             if self.planner.validate_plan(plan):
+                if self._is_screen_analysis_request(state['user_command']):
+                    plan.tool_calls = [
+                        type(plan.tool_calls[0])(
+                            tool_name='analyze_screen',
+                            arguments={'query': state['user_command']},
+                            description='Capture and analyze the current screen'
+                        )
+                    ]
+                elif self._is_delete_request(state['user_command']):
+                    first_call = plan.tool_calls[0]
+                    if first_call.tool_name == 'search_files':
+                        query = first_call.arguments.get('query', state['user_command'])
+                        plan.tool_calls = [
+                            type(first_call)(
+                                tool_name='delete_matching_file',
+                                arguments={'query': query},
+                                description='Find and delete the matching Desktop file'
+                            )
+                        ]
+                        plan.requires_confirmation = True
+                elif self._is_pdf_request(state['user_command']):
+                    first_call = plan.tool_calls[0]
+                    content = first_call.arguments.get(
+                        'content',
+                        f"{state['user_command']}\n\nCreated by AI Voice Assistant."
+                    )
+                    plan.tool_calls = [
+                        type(first_call)(
+                            tool_name='create_pdf',
+                            arguments={
+                                'file_name': first_call.arguments.get(
+                                    'file_name', 'document.pdf'
+                                ),
+                                'content': content,
+                                'location': first_call.arguments.get(
+                                        'location', r'C:\Users\Public\Desktop'
+                                )
+                            },
+                            description='Create the requested PDF document'
+                        )
+                    ]
                 state['plan'] = plan
                 state['requires_confirmation'] = plan.requires_confirmation
             else:
@@ -90,24 +132,27 @@ class VoiceAgent:
 
         return state
 
-    def check_confirmation(self,state:AgentState)->AgentState:
-
-        if not state.get('requires_confirmation', False):
-            state['confirmed'] = True
-            return state
-
-        if state.get('confirmed') is True:
-            logger.info('User confirmed the plan execution')
-            return state
-
-        logger.info('Confirmation required before execution')
-        state['confirmed'] = False
-        state['response'] = (
-            'This action requires your confirmation before I continue. '
-            'Please confirm whether you want me to proceed.'
+    @staticmethod
+    def _is_screen_analysis_request(command: str) -> bool:
+        command_lower = command.lower()
+        analysis_terms = ('analyze', 'analyse', 'describe', 'inspect', 'what is on')
+        screen_terms = ('screen', 'window', 'display', 'desktop')
+        return (
+            any(term in command_lower for term in analysis_terms)
+            and any(term in command_lower for term in screen_terms)
         )
-        state['error'] = 'Awaiting user confirmation'
 
+    @staticmethod
+    def _is_delete_request(command: str) -> bool:
+        return any(term in command.lower() for term in ('delete', 'remove', 'erase'))
+
+    @staticmethod
+    def _is_pdf_request(command: str) -> bool:
+        command_lower = command.lower()
+        return 'pdf' in command_lower or 'portable document' in command_lower
+
+    def check_confirmation(self,state:AgentState)->AgentState:
+        state['confirmed'] = True
         return state
 
     def execute_plan(self,state:AgentState)-> AgentState:
@@ -127,12 +172,17 @@ class VoiceAgent:
                     tool_call.tool_name,
                     tool_call.arguments
                 )
+                result_success = (
+                    result.get('success', False)
+                    if isinstance(result, dict)
+                    else getattr(result, 'success', True)
+                )
 
                 results.append({
                     'tool': tool_call.tool_name,
                     'arguments': tool_call.arguments,
                     'result':result,
-                    'success': result.get('success',False) if isinstance(result,dict) else False
+                    'success': result_success
                 })
 
                 self.memory.log_action(
@@ -140,7 +190,7 @@ class VoiceAgent:
                     tool_call.tool_name,
                     tool_call.arguments,
                     str(result),
-                    result.get('success',False) if isinstance(result,dict) else False
+                    result_success
                 )
 
             except Exception as e:
@@ -167,6 +217,20 @@ class VoiceAgent:
 
         failed = [r for r in results if not r.get('success', False)]
         if failed:
+            confirmation = next(
+                (
+                    result for result in failed
+                    if isinstance(result.get('result'), dict)
+                    and result['result'].get('confirmation_id')
+                ),
+                None
+            )
+            if confirmation:
+                state['error'] = 'Awaiting tool confirmation'
+                state['response'] = confirmation['result'].get(
+                    'message', 'Please confirm before I continue.'
+                )
+                return state
             logger.warning(f"{len(failed)} tool(s) failed")
             state['error'] = f"{len(failed)} tool(s) failed during execution"
             state['response'] = "Some requested actions failed. I should retry or report the partial result clearly."
@@ -181,7 +245,9 @@ class VoiceAgent:
 
         results = state['execution_results']
 
-        if state.get('error'):
+        if state.get('error') in {'Awaiting user confirmation', 'Awaiting tool confirmation'}:
+            response = state.get('response', 'Please confirm before I continue.')
+        elif state.get('error'):
             response = f"I encountered an error: {state['error']}"
 
         elif not results:
@@ -191,9 +257,11 @@ class VoiceAgent:
             response_parts = []
 
             for result in results:
-                if results.get('success'):
+                if result.get('success'):
                     tool_name = result['tool']
                     result_data = result.get('result',{})
+                    if hasattr(result_data, 'model_dump'):
+                        result_data = result_data.model_dump()
 
                     if isinstance(result_data,dict):
                         msg = result_data.get('message',f"Completed {tool_name}")
@@ -203,7 +271,13 @@ class VoiceAgent:
                     response_parts.append(msg)
 
                 else:
-                    error = result.get('error','Unknown error')
+                    result_data = result.get('result')
+                    if hasattr(result_data, 'message'):
+                        error = result_data.message
+                    elif isinstance(result_data, dict):
+                        error = result_data.get('message', result.get('error', 'Unknown error'))
+                    else:
+                        error = result.get('error', 'Unknown error')
                     response_parts.append(f"Failed: {error}")
 
             response = " ".join(response_parts)
@@ -225,17 +299,15 @@ class VoiceAgent:
         return state
 
     def route_confirmation(self,state:AgentState)->str:
+        if state.get('error') and state['error'] != 'Awaiting user confirmation':
+            return 'handle_error'
+
         if state['requires_confirmation'] and not state.get('confirmed',False):
             return 'respond' # Ask for confirmation
 
         return 'execute'
 
     def route_retry(self, state: AgentState) -> str:
-        failed = [r for r in state['execution_results'] if not r.get('success', False)]
-        
-        if failed and len(failed) < len(state['execution_results']):
-            # Some failed, could retry
-            return "execute"  # Retry
         return "respond"
 
     def process_command(self, user_command: str) -> str:

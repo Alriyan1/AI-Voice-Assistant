@@ -191,7 +191,7 @@ class MemoryDatabase:
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
-                cursor.execute("SELECT * FROM file_path")
+                cursor.execute("SELECT * FROM file_paths")
 
                 return [
                     {

@@ -13,6 +13,7 @@ You have access to these tool categories:
 5. **Mouse**: Move, click, double-click, drag, scroll
 6. **Media**: Control volume, mute, play/pause media
 7. **System**: Get CPU/memory usage, system info, manage processes
+8. **Vision**: Analyze the current screen or capture screenshots
 
 ## GUIDELINES
 
@@ -41,7 +42,7 @@ You:
 
 User: "Create a folder called Projects on my Desktop"
 You:
-- create_folder("Projects", "C:\\Users\\Username\\Desktop")
+    - create_folder("Projects", "C:\\Users\\Public\\Desktop")
 - Response: "Created the 'Projects' folder on your Desktop."
 
 User: "What's my CPU usage?"
@@ -63,19 +64,21 @@ You are helpful, efficient, and safe. Always prioritize user safety and system s
 
 TOOL_DESCRIPTIONS = {
     # Applications
-    'open_application': "Open an application by name (chrome, vscode, notepad, edge, firefox)",
-    'close_application': "Close a running application",
+    'open_application': "Open an application. Arguments: app_name (chrome, vscode, notepad, edge, or firefox) and optional arguments.",
+    'close_application': "Close an application. Arguments: app_name.",
     'get_running_applications': "Get list of currently running applications",
     
     # File System
-    'search_files': "Search for files by name or pattern",
-    'create_folder': "Create a new folder",
-    'create_file': "Create a new file with optional content",
+    'search_files': "Find the most similar file by name in the requested location. If none is similar enough, report file not found. Arguments: pattern, optional search_path and file_type.",
+    'create_folder': "Create a new folder. Arguments: folder_name and optional location; if location is omitted, use the E: drive.",
+    'create_file': "Create a new text file. Arguments: file_name (name only), content (optional text), optional location (parent folder path).",
+    'create_pdf': "Create a real PDF document with formatted text. Arguments: file_name, content, and optional location. Use this tool for every PDF request; do not use create_file, type_text, or save_file for PDFs.",
     'rename_file': "Rename a file",
     'move_file': "Move a file to a new location",
     'copy_file': "Copy a file to a new location",
-    'delete_file': "Delete a file (requires confirmation)",
-    'read_file': "Read file contents",
+    'delete_file': "Delete a file (requires confirmation). Arguments: file_path.",
+    'delete_matching_file': "Find the most similar file by name in the requested location, show that exact path for confirmation, then delete it. If none is similar enough, report file not found. Arguments: query and optional location.",
+    'read_file': "Read file contents. Arguments: file_path and optional max_lines.",
     
     # Browser
     'navigate_to': "Navigate to a specific URL",
@@ -87,7 +90,7 @@ TOOL_DESCRIPTIONS = {
     # Keyboard
     'type_text': "Type text character by character",
     'press_key': "Press a single key",
-    'hotkey': "Press a keyboard shortcut (e.g., ctrl+c)",
+    'hotkey': "Press a keyboard shortcut. Arguments: keys (list, e.g. ['ctrl', 'c']).",
     
     # Mouse
     'move_to': "Move mouse to coordinates",
@@ -108,7 +111,10 @@ TOOL_DESCRIPTIONS = {
     'get_system_information': "Get general system information",
     'shutdown_system': "Shutdown computer (requires confirmation)",
     'restart_system': "Restart computer (requires confirmation)",
-    'lock_system': "Lock computer"
+    'lock_system': "Lock computer",
+    # Vision
+    'take_screenshot': "Capture the full screen and save it as a PNG file. Use only when the user explicitly asks to save or take a screenshot.",
+    'analyze_screen': "Capture the current screen without saving it, then describe what is visible. Arguments: query (the user's question about the screen). Use this for analyze, describe, inspect, or 'what is on the screen' requests."
 }
 
 def create_agent_prompt(user_command:str,context:Dict=None)->List[Dict]:

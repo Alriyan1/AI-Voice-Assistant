@@ -41,6 +41,7 @@ class PermissionManager:
             
             # High risk - destructive
             'delete_file': ActionRiskLevel.HIGH,
+            'delete_matching_file': ActionRiskLevel.HIGH,
             'move_file': ActionRiskLevel.HIGH,
             'rename_file': ActionRiskLevel.HIGH,
             'shutdown_system': ActionRiskLevel.CRITICAL,
@@ -51,6 +52,7 @@ class PermissionManager:
         #Actions that always require confirmation
         self.confirmation_required = {
             'delete_file',
+            'delete_matching_file',
             'shutdown_system',
             'restart_system',
             'lock_system',

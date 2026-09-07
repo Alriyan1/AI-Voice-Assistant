@@ -6,6 +6,8 @@ pydantic-settings
 # AI/LLM
 langchain
 langchain-groq
+langchain-openai
+openai
 langgraph
 langchain-community
 faiss-cpu
@@ -22,6 +24,7 @@ pyautogui
 keyboard
 mouse
 playwright
+pygame
 
 # System
 psutil
@@ -44,3 +47,4 @@ aiosqlite
 # Utilities
 rich
 loguru
+reportlab

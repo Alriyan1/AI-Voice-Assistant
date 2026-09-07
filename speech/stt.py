@@ -10,7 +10,7 @@ from config.settings import settings
 class SpeechToText:
     def __init__(self,model:str=None):
         self.model = model or settings.stt_model
-        self.client = Groq(api_key=settings.groq_api_key)
+        self.client = Groq(api_key=settings.groq_api_key) if settings.groq_api_key else None
         self.supported_formats = ['.wav', '.mp3', '.m4a', '.flac']
 
     def audio_bytes_to_wav(self,audio_data:bytes,sample_rate:int=16000)->bytes:
@@ -28,6 +28,9 @@ class SpeechToText:
     def transcribe_audio(self,audio_data:bytes,sample_rate:int=16000)->Optional[str]:
 
         try:
+            if self.client is None:
+                logger.error('Speech-to-text requires GROQ_API_KEY; NVIDIA is used for text and vision tasks')
+                return None
             wav_data = self.audio_bytes_to_wav(audio_data,sample_rate)
 
             with tempfile.NamedTemporaryFile(suffix='.wav',delete=False) as tmp_file:
@@ -35,7 +38,7 @@ class SpeechToText:
                 tmp_path = tmp_file.name
 
             try:
-                with open(tmp_file,'rb') as audio_file:
+                with open(tmp_path,'rb') as audio_file:
                     transcription = self.client.audio.transcriptions.create(
                         file=audio_file,
                         model='whisper-large-v3',
@@ -56,6 +59,9 @@ class SpeechToText:
     def transcribe_file(self,file_path:str)->Optional[str]:
 
         try:
+            if self.client is None:
+                logger.error('Speech-to-text requires GROQ_API_KEY; NVIDIA is used for text and vision tasks')
+                return None
             path = Path(file_path)
             if not path.exists():
                 logger.error(f"Audio file not found: {file_path}")

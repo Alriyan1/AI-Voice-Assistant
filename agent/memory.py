@@ -213,6 +213,7 @@ class AgentMemory:
         
         return {
             'recent_actions': self.get_action_history(5),
+            'recent_conversations': self.get_recent_conversations(5),
             'preferences': {
                 'saved_paths': self.get_all_paths()
             },

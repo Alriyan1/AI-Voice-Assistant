@@ -116,7 +116,7 @@ class ApplicationTools:
                 message=f"Error closing {app_name}: {str(e)}"
             )
 
-    def get_running_application(self) -> List[Dict]:
+    def get_running_applications(self) -> List[Dict]:
 
         try:
             apps = []

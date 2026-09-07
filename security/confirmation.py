@@ -1,6 +1,7 @@
 from typing import Optional,Callable
 from loguru import logger
 import asyncio
+import time
 
 class ConfirmationManager:
 
@@ -14,7 +15,7 @@ class ConfirmationManager:
             action: str,
             description: str,
             callback: Optional[Callable] = None
-    )-> bool:
+        )-> Optional[str]:
 
         try:
             import uuid
@@ -23,6 +24,7 @@ class ConfirmationManager:
             message = f"""
             ⚠️  **Confirmation Required**
 
+            Confirmation ID: {confirmation_id}
             Action: {action}
             Description: {description}
 
@@ -32,19 +34,20 @@ class ConfirmationManager:
             logger.warning(f"Confirmation requested: {action} - {description}")
 
             self.pending_confirmations[confirmation_id] = {
+                'confirmation_id': confirmation_id,
                 'action': action,
                 'description': description,
                 'callback': callback,
-                'timestamp': asyncio.get_event_loop().time()
+                'timestamp': time.monotonic()
             }
 
             print(message)
 
-            return False
+            return confirmation_id
 
         except Exception as e:
             logger.error(f"Confirmation request failed: {e}")
-            return False
+            return None
 
     def confirm(self,confirmation_id: str)->bool:
 
@@ -55,19 +58,20 @@ class ConfirmationManager:
 
             confirmation = self.pending_confirmations[confirmation_id]
 
-            current_time = asyncio.get_event_loop().time()
+            current_time = time.monotonic()
             if current_time - confirmation['timestamp']>self.confirmation_timeout:
                 logger.error(f"Confirmation expired: {confirmation_id}")
                 del self.pending_confirmations[confirmation_id]
                 return False
 
-            if confirmation['callback']:
-                confirmation['callback']()
-
-            del self.pending_confirmations[confirmation_id]
-
-            logger.info(f"Confirmation approved: {confirmation['action']}")
-            return True
+            try:
+                if confirmation['callback']:
+                    confirmation['callback']()
+                logger.info(f"Confirmation approved: {confirmation['action']}")
+                return True
+            finally:
+                # A failed callback must not leave a stale confirmation active.
+                self.pending_confirmations.pop(confirmation_id, None)
 
         except Exception as e:
             logger.error(f"Confirmation failed: {e}")
@@ -95,7 +99,7 @@ class ConfirmationManager:
     def cleaned_expired(self)->int:
 
         try:
-            current_time = asyncio.get_event_loop().time()
+            current_time = time.monotonic()
             expired = []
 
             for conf_id, conf in self.pending_confirmations.items():
