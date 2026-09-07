@@ -334,48 +334,6 @@ These are generated files and should not be committed. They can be deleted safel
 
 - `ui/streamlit_app.py`: Streamlit front end. Provides command input, voice recording, action history, system status, screenshots, file explorer access, and confirmation controls. It adds the project root to `sys.path` so it can be launched reliably from the UI directory.
 
-## Troubleshooting
-
-### `ModuleNotFoundError: No module named 'app'`
-
-Run the UI from the project root with Streamlit:
-
-```powershell
-cd D:\projects\AI-Voice-Assistant
-streamlit run ui/streamlit_app.py
-```
-
-The UI also contains a project-root import bootstrap for direct script layouts.
-
-### NVIDIA authorization or function errors
-
-Check that `NVIDIA_API_KEY` is valid and that the configured model is available to the account. The planner will attempt Groq fallback for authorization, deployment, and malformed structured-output failures.
-
-### Speech-to-text does not work
-
-Check `GROQ_API_KEY`, microphone permissions, and the selected audio device:
-
-```powershell
-python app.py --list-devices
-```
-
-### Confirmation expires
-
-Increase the value in `.env`:
-
-```env
-CONFIRMATION_TIMEOUT_SECONDS=600
-```
-
-The Streamlit confirmation panel is preferred for long-running workflows.
-
-### Browser automation fails
-
-Check Chrome installation, `CHROME_PATH`, Playwright installation, and the `BROWSER_HEADLESS` setting. Browser initialization is performed lazily when the first navigation command runs.
-
-### Audio playback errors
-
-Check that the output device is available. TTS creates unique temporary MP3 files and unloads them after playback to avoid Windows file-lock conflicts.
 
 ## Security Notes
 
@@ -387,25 +345,6 @@ Check that the output device is available. TTS creates unique temporary MP3 file
 - Protected Windows directories are blocked by filesystem safety checks.
 - Review the exact target shown in the confirmation prompt before approving destructive actions.
 
-## Development Checks
-
-Compile the main modules:
-
-```powershell
-D:\projects\envi\Scripts\python.exe -m py_compile app.py agent\graph.py agent\planner.py tools\filesystem.py security\confirmation.py speech\tts.py ui\streamlit_app.py
-```
-
-Compile the full source tree:
-
-```powershell
-Get-ChildItem -Recurse -Filter *.py | ForEach-Object { python -m py_compile $_.FullName }
-```
-
-Run the Streamlit application:
-
-```powershell
-streamlit run ui/streamlit_app.py
-```
 
 ## License
 
