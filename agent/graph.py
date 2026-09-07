@@ -90,6 +90,17 @@ class VoiceAgent:
                             description='Capture and analyze the current screen'
                         )
                     ]
+                elif self._is_website_request(state['user_command']):
+                    first_call = plan.tool_calls[0]
+                    website_url = self._website_url(state['user_command'])
+                    if website_url:
+                        plan.tool_calls = [
+                            type(first_call)(
+                                tool_name='navigate_to',
+                                arguments={'url': website_url},
+                                description=f'Open website: {website_url}'
+                            )
+                        ]
                 elif self._is_delete_request(state['user_command']):
                     first_call = plan.tool_calls[0]
                     if first_call.tool_name == 'search_files':
@@ -145,6 +156,31 @@ class VoiceAgent:
     @staticmethod
     def _is_delete_request(command: str) -> bool:
         return any(term in command.lower() for term in ('delete', 'remove', 'erase'))
+
+    @staticmethod
+    def _website_url(command: str) -> Optional[str]:
+        command_lower = command.lower()
+        known_websites = {
+            'bookmyshow': 'https://in.bookmyshow.com/',
+            'book my show': 'https://in.bookmyshow.com/',
+            'youtube': 'https://www.youtube.com/',
+            'google': 'https://www.google.com/',
+            'github': 'https://github.com/',
+            'amazon': 'https://www.amazon.in/',
+        }
+        for name, url in known_websites.items():
+            if name in command_lower:
+                return url
+
+        return None
+
+    @classmethod
+    def _is_website_request(cls, command: str) -> bool:
+        command_lower = command.lower()
+        return (
+            any(term in command_lower for term in ('website', 'web site', 'webpage', 'url'))
+            or cls._website_url(command) is not None
+        )
 
     @staticmethod
     def _is_pdf_request(command: str) -> bool:

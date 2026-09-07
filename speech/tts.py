@@ -3,6 +3,7 @@ import asyncio
 from typing import Optional,AsyncGenerator
 from pathlib import Path
 import tempfile
+import re
 from loguru import logger
 from config.settings import settings
 import pygame
@@ -16,8 +17,18 @@ class TextToSpeech:
         self.temp_dir.mkdir(parents=True,exist_ok=True)
         pygame.mixer.init()
 
+    @staticmethod
+    def speech_text(text: str) -> str:
+        """Keep spoken output to words, numbers, and spaces only."""
+        cleaned = re.sub(r'[^A-Za-z0-9]+', ' ', str(text))
+        return re.sub(r'\s+', ' ', cleaned).strip()
+
     async def generate_speech(self,text:str)->Optional[bytes]:
         try:
+            text = self.speech_text(text)
+            if not text:
+                return None
+
             communicate = edge_tts.Communicate(text,self.voice)
             audio_data = b''
 
@@ -34,6 +45,10 @@ class TextToSpeech:
 
     async def save_speech(self,text:str,output_path:str)->Optional[str]:
         try:
+            text = self.speech_text(text)
+            if not text:
+                return None
+
             communicate = edge_tts.Communicate(text,self.voice)
             await communicate.save(output_path)
             logger.info(f"Saved speech to: {output_path}")

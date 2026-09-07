@@ -330,6 +330,12 @@ class AIComputerAgent:
 
             logger.info(f"Transcribed: {text}")
 
+            if text.lower().strip() in {'stop', 'stop it', 'cancel listening'}:
+                self.microphone.stop_listening()
+                response = 'Stopped'
+                await self.tts.speak(response)
+                return response
+
             confirmation_result = self.tools.resolve_confirmation(text)
             if confirmation_result is not None:
                 response = confirmation_result.get('message', 'Confirmation handled')
@@ -349,6 +355,10 @@ class AIComputerAgent:
 
     def process_text_command(self,text:str)->str:
         try:
+            if text.lower().strip() in {'stop', 'stop it', 'cancel listening'}:
+                self.microphone.stop_listening()
+                return 'Stopped'
+
             confirmation_result = self.tools.resolve_confirmation(text)
             if confirmation_result is not None:
                 response = confirmation_result.get('message', 'Confirmation handled')

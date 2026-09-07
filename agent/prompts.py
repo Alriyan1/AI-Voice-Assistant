@@ -64,7 +64,7 @@ You are helpful, efficient, and safe. Always prioritize user safety and system s
 
 TOOL_DESCRIPTIONS = {
     # Applications
-    'open_application': "Open an application. Arguments: app_name (chrome, vscode, notepad, edge, or firefox) and optional arguments.",
+    'open_application': "Open a local application only. Arguments: app_name (chrome, vscode, notepad, edge, or firefox). For websites, use navigate_to instead.",
     'close_application': "Close an application. Arguments: app_name.",
     'get_running_applications': "Get list of currently running applications",
     
@@ -81,7 +81,7 @@ TOOL_DESCRIPTIONS = {
     'read_file': "Read file contents. Arguments: file_path and optional max_lines.",
     
     # Browser
-    'navigate_to': "Navigate to a specific URL",
+    'navigate_to': "Open a website in the browser. Arguments: url. Use this for website names or URLs, not open_application.",
     'search_google': "Search Google for a query",
     'search_youtube': "Search YouTube for a query",
     'click_element': "Click an element on a webpage",

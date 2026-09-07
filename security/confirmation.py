@@ -2,12 +2,13 @@ from typing import Optional,Callable
 from loguru import logger
 import asyncio
 import time
+from config.settings import settings
 
 class ConfirmationManager:
 
     def __init__(self):
         self.pending_confirmations = {}
-        self.confirmation_timeout = 30 # second
+        self.confirmation_timeout = settings.confirmation_timeout_seconds
 
 
     async def request_confirmation(
@@ -95,6 +96,15 @@ class ConfirmationManager:
     def get_pending_confirmations(self) -> list:
 
         return list(self.pending_confirmations.values())
+
+    def seconds_remaining(self, confirmation_id: str) -> int:
+        confirmation = self.pending_confirmations.get(confirmation_id)
+        if not confirmation:
+            return 0
+        remaining = self.confirmation_timeout - (
+            time.monotonic() - confirmation['timestamp']
+        )
+        return max(0, int(remaining))
 
     def cleaned_expired(self)->int:
 

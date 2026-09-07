@@ -45,6 +45,11 @@ class Settings(BaseSettings):
         True,
         description='Require confirmation for destructive operations'
     )
+    confirmation_timeout_seconds: int = Field(
+        300,
+        ge=30,
+        description='Seconds before a pending destructive-action confirmation expires'
+    )
 
     allowed_applications: List[str] = Field(
         ["chrome", "vscode", "notepad", "edge", "firefox"],
